@@ -1,8 +1,8 @@
 import http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { ExecutionState, TaskStatus } from "../contracts.js";
-import { nowIso } from "../util.js";
-import { DEMO_CAPABILITIES } from "./types.js";
+import type { ExecutionState, TaskStatus } from "./contracts.js";
+import { nowIso } from "./util.js";
+import { DEMO_CAPABILITIES } from "./adapters/types.js";
 
 /**
  * Controllable reference runner implementing the minimal HTTP contract:

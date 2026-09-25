@@ -133,6 +133,18 @@ export class MissionStore {
     };
   }
 
+  updateConfirmedRules(
+    missionId: string,
+    version: number,
+    rules: Rule[],
+  ): void {
+    this.db
+      .prepare(
+        `UPDATE spec_versions SET confirmed_rules_json=? WHERE mission_id=? AND version=?`,
+      )
+      .run(j(rules), missionId, version);
+  }
+
   setExtracted(
     missionId: string,
     rules: Rule[],

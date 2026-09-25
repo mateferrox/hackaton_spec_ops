@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:core": "SPECOPS_PORT=${SPECOPS_PORT:-3101} npm run dev --prefix core",
+    "dev:all": "npm run dev:core & npm run dev",
     "build": "tsc -b && vite build",
+    "build:core": "npm run build --prefix core",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:core": "npm test --prefix core",
+    "test:all": "npm test --prefix core && vitest run"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.2.8",

@@ -145,6 +145,7 @@ export function openDatabase(dbPath?: string): DatabaseSync {
   const db = new DatabaseSync(file);
   db.exec("PRAGMA foreign_keys = ON;");
   migrate(db);
+  singleton = db;
   return db;
 }
 

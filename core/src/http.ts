@@ -5,6 +5,9 @@ import type { AnalyzeRequest, ResolveRequest } from "./contracts.js";
 import { SpecOpsError } from "./errors.js";
 import { DEMO_ANALYZE_REQUEST } from "./fixture.js";
 import { resolve } from "./resolve.js";
+import { handleV2 } from "./v2/http-v2.js";
+import { openDatabase, getDb, closeDb } from "./v2/db.js";
+import { resetMissionService } from "./v2/mission-service.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
 
@@ -20,10 +23,13 @@ function setCors(req: IncomingMessage, res: ServerResponse): void {
   if (origin && ALLOWED_ORIGINS.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, OPTIONS",
+    );
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization",
+      "Content-Type, Authorization, Last-Event-ID",
     );
     res.setHeader("Access-Control-Max-Age", "86400");
   }
@@ -160,7 +166,16 @@ const routes: Record<string, Partial<Record<string, RouteHandler>>> = {
   },
 };
 
-export function createAppServer(): http.Server {
+export function createAppServer(options?: { dbPath?: string }): http.Server {
+  // Ensure DB is ready for v2 routes
+  if (options?.dbPath) {
+    closeDb();
+    resetMissionService();
+    openDatabase(options.dbPath);
+  } else {
+    getDb();
+  }
+
   return http.createServer(async (req, res) => {
     try {
       const method = (req.method ?? "GET").toUpperCase();
@@ -173,6 +188,13 @@ export function createAppServer(): http.Server {
         res.end();
         return;
       }
+
+      const handled = await handleV2(req, res, method, path, {
+        sendJson,
+        parseJson: parseJsonBody,
+        setCors: () => setCors(req, res),
+      });
+      if (handled) return;
 
       const route = routes[path];
       if (!route) {
