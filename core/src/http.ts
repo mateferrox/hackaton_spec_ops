@@ -1,4 +1,5 @@
 import http from "node:http";
+import { appendFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { analyze, isLiveConfigured } from "./analyze.js";
 import type { AnalyzeRequest, ResolveRequest } from "./contracts.js";
@@ -10,6 +11,24 @@ import { openDatabase, getDb, closeDb } from "./v2/db.js";
 import { resetMissionService } from "./v2/mission-service.js";
 
 const MAX_BODY_BYTES = 256 * 1024;
+
+// #region agent log
+function agentLog(
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+  hypothesisId: string,
+): void {
+  try {
+    appendFileSync(
+      "/Users/matteo/Documents/projects/specops/.cursor/debug-7ce33b.log",
+      `${JSON.stringify({ sessionId: "7ce33b", runId: "pre-fix", hypothesisId, location, message, data, timestamp: Date.now() })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+}
+// #endregion
 
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
@@ -181,6 +200,11 @@ export function createAppServer(options?: { dbPath?: string }): http.Server {
       const method = (req.method ?? "GET").toUpperCase();
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const path = url.pathname;
+      // #region agent log
+      if (path.startsWith("/api/v2/specs")) {
+        agentLog("core/src/http.ts:handler", "incoming specs request", { method, path, port: PORT }, "B,C");
+      }
+      // #endregion
 
       if (method === "OPTIONS") {
         setCors(req, res);
@@ -210,6 +234,19 @@ export function createAppServer(options?: { dbPath?: string }): http.Server {
       }
       await handler(req, res);
     } catch (err) {
+      // #region agent log
+      agentLog(
+        "core/src/http.ts:catch",
+        "handler threw",
+        {
+          name: err instanceof Error ? err.name : typeof err,
+          message: err instanceof Error ? err.message : String(err),
+          isSpecOps: err instanceof SpecOpsError,
+          status: err instanceof SpecOpsError ? err.status : null,
+        },
+        "C",
+      );
+      // #endregion
       if (err instanceof SpecOpsError) {
         sendError(req, res, err);
         return;

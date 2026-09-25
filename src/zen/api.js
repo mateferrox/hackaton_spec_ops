@@ -1,7 +1,8 @@
 const API_BASE = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) || "";
 
 async function request(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -9,6 +10,9 @@ async function request(path, options = {}) {
     },
   });
   const text = await res.text();
+  // #region agent log
+  fetch('http://127.0.0.1:7864/ingest/36983b28-5756-4f39-9684-557a747376c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7ce33b'},body:JSON.stringify({sessionId:'7ce33b',runId:'pre-fix',hypothesisId:'A,D,E',location:'src/zen/api.js:request',message:'api response',data:{url,status:res.status,ok:res.ok,contentType:res.headers.get('content-type'),bodyPreview:text.slice(0,280)},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   let body = null;
   try {
     body = text ? JSON.parse(text) : null;

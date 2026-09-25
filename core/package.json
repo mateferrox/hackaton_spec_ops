@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",

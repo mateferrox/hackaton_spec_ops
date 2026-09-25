@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { SpecOpsError } from "../errors.js";
 import { importSpecText, listSpecs } from "./specs-library.js";
@@ -119,7 +120,18 @@ export async function handleV2(
       return true;
     }
     case "specs.list": {
-      sendJson(req, res, 200, { specs: listSpecs() });
+      const specs = listSpecs();
+      // #region agent log
+      try {
+        appendFileSync(
+          "/Users/matteo/Documents/projects/specops/.cursor/debug-7ce33b.log",
+          `${JSON.stringify({ sessionId: "7ce33b", runId: "pre-fix", hypothesisId: "C", location: "core/src/v2/http-v2.ts:specs.list", message: "listSpecs ok", data: { count: specs.length, ids: specs.map((s) => s.id) }, timestamp: Date.now() })}\n`,
+        );
+      } catch {
+        /* ignore */
+      }
+      // #endregion
+      sendJson(req, res, 200, { specs });
       return true;
     }
     case "specs.import": {
