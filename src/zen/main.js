@@ -24,9 +24,82 @@ import './style.css';
         return `<li>${i>0&&i<4?`<button ${attributes}>${content}</button>`:`<div ${attributes}>${content}</div>`}</li>`;
       }).join('');
     }
+    let bed=null;
+    const fadingBeds=new Set();
+    const soundOnIcon='<path d="M11 4 5 9H2v6h3l6 5M16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14"/>';
+    const soundOffIcon='<path d="M11 4 5 9H2v6h3l6 5ZM16 9l6 6m0-6-6 6"/>';
+    function syncSoundControl(){
+      $('#sound-label').textContent=sound?'Suono on':'Suono off';
+      $('#sound-toggle').setAttribute('aria-label',sound?'Disattiva suono rilassante':'Attiva suono rilassante');
+      $('#sound-toggle').setAttribute('aria-pressed',String(sound));
+      $('#sound-toggle').querySelector('svg').innerHTML=sound?soundOnIcon:soundOffIcon;
+    }
+    function releaseBed(current){
+      clearTimeout(current.timer);
+      for(const node of current.sources){try{node.stop();}catch{/* already stopped */}}
+      try{current.master.disconnect();}catch{/* already disconnected */}
+    }
+    function stopBed(immediate){
+      const current=bed;
+      if(!current)return;
+      bed=null;
+      if(immediate||!audio){releaseBed(current);return;}
+      fadingBeds.add(current);
+      const moment=audio.currentTime;
+      const level=Math.max(current.master.gain.value,.0001);
+      current.master.gain.cancelScheduledValues(moment);
+      current.master.gain.setValueAtTime(level,moment);
+      current.master.gain.linearRampToValueAtTime(0,moment+1);
+      current.timer=setTimeout(()=>{fadingBeds.delete(current);releaseBed(current);},1050);
+    }
+    function startBed(){
+      stopBed(true);
+      for(const current of fadingBeds)releaseBed(current);
+      fadingBeds.clear();
+      const ctx=audio??=new AudioContext();
+      void ctx.resume();
+      const master=ctx.createGain();
+      master.gain.setValueAtTime(0,ctx.currentTime);
+      master.gain.linearRampToValueAtTime(.08,ctx.currentTime+1.4);
+      const warmth=ctx.createBiquadFilter();
+      warmth.type='lowpass';warmth.frequency.value=980;warmth.Q.value=.4;
+      const breath=ctx.createGain();breath.gain.value=.82;
+      breath.connect(warmth);warmth.connect(master);master.connect(ctx.destination);
+      const sources=[];
+      bed={master,sources,timer:0};
+      for(const [frequency,level] of [[110,.2],[110.33,.14],[146.83,.1],[164.81,.08],[196,.04]]){
+        const osc=ctx.createOscillator(),gain=ctx.createGain();
+        osc.type='sine';osc.frequency.value=frequency;gain.gain.value=level;
+        osc.connect(gain);gain.connect(breath);osc.start();sources.push(osc);
+      }
+      const lfo=ctx.createOscillator(),lfoDepth=ctx.createGain();
+      lfo.frequency.value=.065;lfoDepth.gain.value=.12;
+      lfo.connect(lfoDepth);lfoDepth.connect(breath.gain);lfo.start();sources.push(lfo);
+      const length=ctx.sampleRate*3,buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
+      for(let i=0;i<length;i++)data[i]=Math.random()*2-1;
+      const noise=ctx.createBufferSource(),air=ctx.createBiquadFilter(),airGain=ctx.createGain();
+      noise.buffer=buffer;noise.loop=true;air.type='bandpass';air.frequency.value=480;air.Q.value=.55;airGain.gain.value=.016;
+      noise.connect(air);air.connect(airGain);airGain.connect(master);noise.start();sources.push(noise);
+      const wind=ctx.createOscillator(),windDepth=ctx.createGain();
+      wind.frequency.value=.028;windDepth.gain.value=160;
+      wind.connect(windDepth);windDepth.connect(air.frequency);wind.start();sources.push(wind);
+    }
+    function failSound(){sound=false;stopBed(true);for(const current of fadingBeds)releaseBed(current);fadingBeds.clear();syncSoundControl();}
     function playNote(kind){
       if(!sound)return;
-      try{audio??=new AudioContext();audio.resume();const freqs=kind==='conflict'?[185,146]:kind==='complete'?[330,440,660]:[330,495];freqs.forEach((f,i)=>{const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=f;gain.gain.setValueAtTime(0,audio.currentTime+i*.11);gain.gain.linearRampToValueAtTime(.04,audio.currentTime+i*.11+.02);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+i*.11+.4);osc.connect(gain);gain.connect(audio.destination);osc.start(audio.currentTime+i*.11);osc.stop(audio.currentTime+i*.11+.45);});}catch{sound=false;}
+      try{
+        const ctx=audio??=new AudioContext();
+        void ctx.resume();
+        const freqs=kind==='conflict'?[185,146]:kind==='complete'?[330,440,660]:[330,495];
+        freqs.forEach((frequency,i)=>{
+          const osc=ctx.createOscillator(),gain=ctx.createGain(),start=ctx.currentTime+i*.08;
+          osc.type='sine';osc.frequency.value=frequency;
+          gain.gain.setValueAtTime(0,start);
+          gain.gain.linearRampToValueAtTime(.028,start+.015);
+          gain.gain.exponentialRampToValueAtTime(.001,start+.26);
+          osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.28);
+        });
+      }catch{failSound();}
     }
     const button=(text,action,primary=false,key='')=>`<button class="answer ${primary?'primary':''}" data-action="${action}"><span>${text}</span>${key?`<span class="key" aria-hidden="true">${key}</span>`:''}</button>`;
     function render(focus=false){
@@ -68,7 +141,13 @@ import './style.css';
     $('#close-spec').onclick=()=>$('#spec-dialog').close();
     $('#spec-dialog').addEventListener('click',e=>{if(e.target===$('#spec-dialog'))$('#spec-dialog').close();});
     $('#motion-toggle').onclick=()=>{motionStopped=!motionStopped;$('#motion-toggle').setAttribute('aria-pressed',String(motionStopped));$('#motion-toggle').setAttribute('aria-label',motionStopped?'Riprendi animazione':'Ferma animazione');$('#motion-label').textContent=motionStopped?'Riprendi movimento':'Ferma movimento';};
-    $('#sound-toggle').onclick=()=>{sound=!sound;$('#sound-label').textContent=sound?'Suono on':'Suono off';$('#sound-toggle').setAttribute('aria-label',sound?'Disattiva suoni':'Attiva suoni');$('#sound-toggle').setAttribute('aria-pressed',String(sound));if(sound)playNote('aligned');};
+    $('#sound-toggle').onclick=()=>{
+      sound=!sound;
+      try{if(sound)startBed();else stopBed(false);}catch{failSound();return;}
+      syncSoundControl();
+    };
+    document.addEventListener('visibilitychange',()=>{if(sound&&!document.hidden&&audio?.state==='suspended')void audio.resume();});
+    window.addEventListener('pagehide',()=>{stopBed(true);for(const current of fadingBeds)releaseBed(current);fadingBeds.clear();void audio?.close();});
     let noticeTimer;
     function notice(text){document.querySelector('.notice')?.remove();clearTimeout(noticeTimer);const node=document.createElement('div');node.className='notice';node.role='status';node.textContent=text;document.body.append(node);noticeTimer=setTimeout(()=>node.remove(),3500);}
     $('#fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else notice('Schermo intero non disponibile in questo browser.');}catch{notice('Il browser non consente lo schermo intero in questa finestra.');}};
