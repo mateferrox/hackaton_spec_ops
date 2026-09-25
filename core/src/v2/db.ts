@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const MIGRATIONS: string[] = [
   `
@@ -119,6 +119,46 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (mission_id)
   );
   `,
+  `
+  CREATE TABLE tasks_scoped (
+    id TEXT NOT NULL,
+    mission_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    depends_on_json TEXT NOT NULL,
+    relevant_rule_ids_json TEXT NOT NULL,
+    runner_task_id TEXT,
+    status TEXT NOT NULL,
+    evidence_refs_json TEXT NOT NULL,
+    needs_review INTEGER NOT NULL DEFAULT 0,
+    review_cause_ids_json TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    PRIMARY KEY (mission_id, id),
+    FOREIGN KEY (mission_id) REFERENCES missions(id)
+  );
+  INSERT INTO tasks_scoped SELECT * FROM tasks;
+  DROP TABLE tasks;
+  ALTER TABLE tasks_scoped RENAME TO tasks;
+
+  CREATE TABLE questions_scoped (
+    id TEXT NOT NULL,
+    mission_id TEXT NOT NULL,
+    spec_version INTEGER NOT NULL,
+    task_ids_json TEXT NOT NULL,
+    rule_ids_json TEXT NOT NULL,
+    situation TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    choices_json TEXT NOT NULL,
+    state TEXT NOT NULL,
+    deduplication_key TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    PRIMARY KEY (mission_id, id),
+    FOREIGN KEY (mission_id) REFERENCES missions(id)
+  );
+  INSERT INTO questions_scoped SELECT * FROM questions;
+  DROP TABLE questions;
+  ALTER TABLE questions_scoped RENAME TO questions;
+  `,
 ];
 
 export type Db = DatabaseSync;
@@ -145,6 +185,7 @@ export function openDatabase(dbPath?: string): DatabaseSync {
   const db = new DatabaseSync(file);
   db.exec("PRAGMA foreign_keys = ON;");
   migrate(db);
+  singleton = db;
   return db;
 }
 

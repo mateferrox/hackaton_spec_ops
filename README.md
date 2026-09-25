@@ -1,34 +1,49 @@
 # SpecOps
 
-La home è la demo zen approvata: giardino animato, ramo di sakura, petali, step della spec e tre casi di prova con conflitto e pausa.
+Giardino zen per accompagnare l’esecuzione di una spec: selezione, analisi, conferma regole, domande contestuali, conflitti motivati e pausa del runner con ack.
 
-## Avvio
+## Avvio locale
 
-```sh
-npm install
-npm run dev
-```
-
-Home: http://localhost:5173/
+Terminal 1 — core:
 
 ```sh
-npm run build
-npm run preview
+npm install --prefix core
+npm run dev:core
 ```
 
-La build distribuibile è `dist/`; non richiede un backend per questa demo. Tutti gli asset sono locali.
+Terminal 2 — UI:
+
+```sh
+npm install && npm run dev
+```
+
+Apri http://127.0.0.1:5173/ (Vite proxy `/api` → `127.0.0.1:3101`). Gli script dalla root usano la porta 3101 per evitare conflitti con altri servizi locali. Per una porta diversa, imposta `SPECOPS_PORT` per il core e `SPECOPS_CORE_URL` per Vite.
+
+```sh
+npm run build && npm run preview   # UI da dist/
+cd core && npm test && npm run build
+```
+
+## Modalità operative
+
+| Dichiarazione | Come |
+| --- | --- |
+| **Demo completa** | `mode: demo`, nessuna chiave, libreria spec + DemoAdapter |
+| **Analisi live completa** | `mode: connected` + `SPECOPS_AI_*` autorizzati |
+| **Controllo agente verificato** | DemoAdapter / reference runner in test; agente reale solo con runner HTTP compatibile registrato server-side |
 
 ## File attivi
 
-- `index.html`: home e struttura accessibile.
-- `src/zen/main.js`: domande, stati della simulazione e animazione Canvas.
-- `src/zen/style.css`: layout responsive e stile zen.
-- `public/demo-assets/`: font e ramo di ciliegio.
-- `output/demo/index.html`: prototipo autonomo precedente, conservato come riferimento.
-- `core/`: servizio HTTP separato; vedere il suo README.
+- `index.html` + `src/zen/*` — home approvata collegata a `/api/v2`
+- `core/` — legacy + v2 (SQLite in `core/data/`)
+- `.env.example` / `core/.env.example` — senza segreti
+- Spec: `docs/superpowers/specs/2026-09-25-specops-full-product-grok.md`
 
-La home attuale usa scenari preparati. Non analizza spec arbitrarie, non esegue task e non controlla agenti reali. La pausa arresta la simulazione e le animazioni. Il core esistente supporta il mock; l'analisi live non è implementata.
+## Flusso
 
-La prima UI React/Three.js in `src/App.tsx` e gli altri file collegati non sono più l'entrypoint della home. Non estenderli per il nuovo prodotto.
+1. Scegli o importa una spec → demo o connected  
+2. Conferma regole estratte (nessun working prima dell’avvio)  
+3. Avvia → rispondi ai casi → in conflitto: pausa / resta nella spec / rivedi  
+4. Pausa: `pause_requested` finché il runner non conferma `paused`
 
-Spec di implementazione completa per l'agente successivo: `docs/superpowers/specs/2026-09-25-specops-full-product-grok.md`.
+La vecchia UI React/Three.js non è l’entrypoint.

@@ -1,9 +1,10 @@
 import type {
-  ControlKind,
   ExecutionState,
   RunnerCapabilities,
   TaskStatus,
-} from "./contracts.js";
+} from "../contracts.js";
+
+export type { RunnerCapabilities };
 
 export interface RunnerTaskState {
   id: string;

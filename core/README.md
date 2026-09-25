@@ -1,97 +1,62 @@
 # SpecOps core
 
-Motore HTTP della demo SpecOps: confronta una spec e un piano, espone assunzioni come carte e risolve le risposte in modo deterministico.
-
-Implementato esclusivamente sotto `core/`. Nessun database, autenticazione o esecuzione di task.
+Motore HTTP di SpecOps: contratto legacy (`/api/analyze`, `/api/resolve`) e prodotto v2 (`/api/v2/*`) con SQLite, missioni, DemoAdapter, HttpRunnerAdapter e reference runner.
 
 ## Avvio
 
 ```bash
 cd core
 npm install
-npm run dev          # http://127.0.0.1:3001
+cp .env.example .env   # opzionale
+npm run dev            # http://127.0.0.1:3001
 npm test
 npm run build
-npm start            # serve dist/ dopo build
+npm start
 ```
 
-Variabili opzionali:
+Variabili: vedere `.env.example`.
 
 | Variabile | Default | Descrizione |
 | --- | --- | --- |
-| `SPECOPS_HOST` | `127.0.0.1` | Interfaccia di ascolto (loopback) |
+| `SPECOPS_HOST` | `127.0.0.1` | Loopback |
 | `SPECOPS_PORT` | `3001` | Porta HTTP |
+| `SPECOPS_DATA_DIR` | `./data` | Directory SQLite (esclusa da Git) |
+| `SPECOPS_AI_BASE_URL` / `SPECOPS_AI_API_KEY` | — | Provider OpenAI-compatible per mode `connected` |
+| `SPECOPS_REFERENCE_RUNNER_URL` | `http://127.0.0.1:3002` | URL del reference runner per `runnerId=reference` |
+| `SPECOPS_RUNNERS_JSON` | — | Mappa id→URL runner (solo server) |
 
 ## Modalità
 
-| Mode | Stato | Note |
-| --- | --- | --- |
-| `mock` | disponibile | Accetta solo i testi della missione demo (dopo normalizzazione degli spazi). Altri input → `MOCK_INPUT_MISMATCH`. |
-| `live` | non implementata | `POST /api/analyze` con `mode: "live"` risponde `503 LIVE_NOT_CONFIGURED`. `GET /api/health` riporta `modes.live: false`. |
+| Mode | Stato |
+| --- | --- |
+| legacy `mock` | disponibile (fixture sale) |
+| legacy `live` | `LIVE_NOT_CONFIGURED` |
+| v2 `demo` | offline, analisi deterministica, DemoAdapter |
+| v2 `connected` | richiede provider; altrimenti `PROVIDER_NOT_CONFIGURED` |
 
-Non sono richieste chiavi API. Eventuali variabili provider per un adapter live futuro andrebbero solo lato server (mai nel browser); in questa consegna non sono usate.
+## API v2 (sintesi)
 
-## Endpoint
+- `GET /api/v2/specs` — libreria spec
+- `POST /api/v2/specs/import` — importa testo
+- `POST /api/v2/missions` — crea missione + avvia analisi
+- `GET /api/v2/missions/:id` — snapshot
+- `GET /api/v2/missions/:id/events` — SSE
+- `POST .../confirm-rules` · `start` · `answers` · `control`
+- `PUT .../spec` · `POST .../reanalyze` · `GET .../brief`
 
-### `GET /api/health`
-
-```json
-{ "ok": true, "modes": { "mock": true, "live": false } }
-```
-
-### `GET /api/demo`
-
-Restituisce un `AnalyzeRequest` con i testi della fixture e `mode: "mock"`.
-
-### `POST /api/analyze`
-
-Body: `{ "spec": string, "plan": string, "mode": "mock" | "live" }`  
-Risposta 200: `Analysis` (senza wrapper).
-
-### `POST /api/resolve`
-
-Body: `{ "analysis": Analysis, "answers": Answer[] }`  
-Risposta 200: `Resolution` (senza wrapper). Stateless: il client invia l’analisi e l’insieme corrente di risposte.
-
-## Esempi
-
-Caricare la missione e analizzarla:
+## Reference runner
 
 ```bash
-curl -s http://127.0.0.1:3001/api/demo > /tmp/demo.json
-curl -s -X POST http://127.0.0.1:3001/api/analyze \
-  -H 'Content-Type: application/json' \
-  -d @/tmp/demo.json
+npx tsx -e "import { createReferenceRunner } from './src/v2/reference-runner.ts'; const s=createReferenceRunner(); s.listen(3002,'127.0.0.1');"
 ```
 
-Risolvere cambiando la policy di cancellazione (`a3` → `until_start`):
+Contratto: `GET /snapshot`, `GET /events`, `POST /commands`, `POST /start`.
 
-```bash
-curl -s -X POST http://127.0.0.1:3001/api/resolve \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "analysis": '"$(curl -s -X POST http://127.0.0.1:3001/api/analyze -H "Content-Type: application/json" -d @/tmp/demo.json)"',
-    "answers": [{ "assumptionId": "a3", "choiceId": "until_start" }]
-  }'
-```
+## Integrazione agente reale
 
-## Contratto TypeScript
+1. Esporre lo stesso contratto HTTP del reference runner.
+2. Registrare l’URL in `SPECOPS_RUNNERS_JSON` (mai dal browser).
+3. Creare la missione con `mode: "connected"` e `runnerId` noto al server.
+4. Verificare pause: `pause_requested` → ack → nessun nuovo lavoro; resume una sola volta per commandId.
 
-I tipi condivisi sono in `src/contracts.ts` (nessuna dipendenza runtime). Il frontend può importarli senza trascinare il server.
-
-## CORS
-
-Consentito solo per:
-
-- `http://localhost:5173`
-- `http://127.0.0.1:5173`
-- `http://localhost:3000`
-- `http://127.0.0.1:3000`
-
-Le richieste `OPTIONS` valide rispondono `204`.
-
-## Errori
-
-Forma `ApiError`: `{ "error": { "code", "message", "retryable" } }`.
-
-Codici usati dal mock: `INVALID_INPUT`, `MOCK_INPUT_MISMATCH`, `PAYLOAD_TOO_LARGE`, `INVALID_ANALYSIS`, `INVALID_ANSWER`, `LIVE_NOT_CONFIGURED`, `NOT_FOUND`, `METHOD_NOT_ALLOWED`. Solo errori provider/timeout (non implementati qui) sarebbero `retryable: true`.
+Cosa è verificato in questa consegna: DemoAdapter e reference runner in test automatici. Un agente commerciale (Grok/Codex/…) non è dichiarato integrato finché non viene collegato un runner compatibile.

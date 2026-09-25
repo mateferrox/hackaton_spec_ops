@@ -9,32 +9,66 @@
   <title>SpecOps · Il giardino delle decisioni</title>
 </head>
 <body>
-  <div class="demo" id="demo" data-scene="question">
+  <div class="demo" id="demo" data-scene="onboarding">
     <aside class="sidebar" aria-label="Step della spec">
-      <a class="brand" href="/" aria-label="SpecOps, ricomincia la demo">specops</a>
-      <p class="project">Sale riunioni</p>
+      <a class="brand" href="/" aria-label="SpecOps, ricomincia">specops</a>
+      <p class="project">SpecOps</p>
       <ol class="steps" id="steps"></ol>
-      <div class="sidebar-foot"><button class="spec-button" id="open-spec">Spec 1.0</button><span class="demo-label">Simulazione</span></div>
+      <div class="sidebar-foot"><button class="spec-button" id="open-spec">Spec</button><span class="demo-label">—</span></div>
     </aside>
     <main class="stage" id="stage">
       <canvas id="wallpaper" aria-hidden="true"></canvas>
       <img class="sakura-branch" id="sakura-branch" src="/demo-assets/sakura-branch.png" alt="" width="1672" height="941" draggable="false">
-      <div class="ambient-description"><span class="live-dot"></span><span id="ambient-status">Il lavoro scorre. Tu scegli la direzione.</span></div>
+      <div class="ambient-description"><span class="live-dot"></span><span id="ambient-status">Scegli una spec per iniziare.</span></div>
       <div class="tools">
         <button class="tool" id="motion-toggle" aria-label="Ferma animazione" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg><span id="motion-label">Ferma movimento</span></button>
         <button class="tool" id="sound-toggle" aria-label="Attiva suono rilassante" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4 5 9H2v6h3l6 5ZM16 9l6 6m0-6-6 6"/></svg><span id="sound-label">Suono off</span></button>
         <button class="tool" id="fullscreen" aria-label="Apri schermo intero"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5m8 0h5v-5"/></svg><span>Schermo intero</span></button>
       </div>
       <section class="narrative" id="narrative" aria-live="polite" aria-atomic="true"></section>
-      <div class="bottom-note"><span id="case-counter" class="scene-number">01 / 03</span><span>·</span><span>Casi di prova</span></div>
+      <div class="bottom-note"><span id="case-counter" class="scene-number">—</span><span>·</span><span>Casi di prova</span></div>
     </main>
   </div>
+
   <dialog id="spec-dialog" aria-labelledby="spec-title">
     <div class="dialog-top"><h2 id="spec-title">La spec in vigore.</h2><button class="close" id="close-spec">Chiudi</button></div>
-    <p class="dialog-subtitle">Un’app per prenotare sale riunioni. Queste sono le regole esplicite dello scenario demo.</p>
-    <ol class="spec-rules"><li>Solo gli utenti registrati possono prenotare.</li><li>Le prenotazioni avvengono in slot di 30 minuti, anche consecutivi.</li><li>È possibile cancellare fino a 24 ore prima dell’inizio.</li></ol>
-    <p class="dialog-note">Questa è una demo visiva locale. Le domande e i conflitti sono preparati. Working, pending e pausa descrivono la simulazione: nessun agente reale viene avviato o fermato.</p>
+    <p class="dialog-subtitle"></p>
+    <ol class="spec-rules"></ol>
+    <p class="dialog-note">Le versioni precedenti restano salvate sul server. Una nuova versione richiede conferma e reanalisi esplicite.</p>
   </dialog>
+
+  <dialog id="spec-picker" aria-labelledby="picker-title">
+    <div class="dialog-top"><h2 id="picker-title">Esplora una spec.</h2><button class="close" id="close-picker">Chiudi</button></div>
+    <p class="dialog-subtitle">Scegli dalla libreria locale oppure importa testo Markdown.</p>
+    <div id="spec-list" class="spec-list"></div>
+    <div class="import-block">
+      <label for="import-title">Titolo</label>
+      <input id="import-title" type="text" maxlength="120" placeholder="La mia spec">
+      <label for="import-text">Testo</label>
+      <textarea id="import-text" rows="5" maxlength="20000" placeholder="Incolla la spec…"></textarea>
+      <button class="answer primary" id="import-spec" type="button"><span>Importa e continua</span></button>
+    </div>
+  </dialog>
+
+  <dialog id="mode-dialog" aria-labelledby="mode-title">
+    <div class="dialog-top"><h2 id="mode-title">Come procediamo?</h2><button class="close" id="close-mode">Chiudi</button></div>
+    <p class="dialog-subtitle">Demo funziona offline senza chiavi. Connected usa il provider AI configurato sul server.</p>
+    <div class="answers" style="margin-top:12px">
+      <button class="answer primary" id="mode-demo" type="button"><span>Modalità demo</span></button>
+      <button class="answer" id="mode-connected" type="button"><span>Connected (AI)</span></button>
+    </div>
+  </dialog>
+
+  <dialog id="task-dialog" aria-labelledby="task-detail-title">
+    <div class="dialog-top"><h2 id="task-detail-title">Step</h2><button class="close" id="close-task">Chiudi</button></div>
+    <div id="task-detail-body" class="dialog-note"></div>
+  </dialog>
+
+  <dialog id="brief-dialog" aria-labelledby="brief-title">
+    <div class="dialog-top"><h2 id="brief-title">Brief</h2><button class="close" id="close-brief">Chiudi</button></div>
+    <pre id="brief-body" class="brief-pre"></pre>
+  </dialog>
+
   <script type="module" src="/src/zen/main.js"></script>
 </body>
 </html>

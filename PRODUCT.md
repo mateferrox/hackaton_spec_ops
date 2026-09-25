@@ -6,25 +6,25 @@
 web
 
 ## Users
-Developer che supervisionano le decisioni di un agente durante l'implementazione di una spec.
+Developer che supervisionano le decisioni di un agente durante l’implementazione di una spec.
 
 ## Product Purpose
-Confrontare spec e piano dell'agente, rendere visibili le assunzioni e permettere di confermarle o cambiarle con un mini-quiz. Mostrare quali task vanno rivalutati e produrre un brief aggiornato.
+Partire da una spec già scritta, estrarre regole e casi concreti, accompagnare l’esecuzione con domande contestuali, segnalare conflitti motivati e permettere la pausa verificabile del runner.
 
 ## Operating Context
-Demo desktop fullscreen, interattiva, con animazioni. Il pubblico deve poter provare il flusso in pochi minuti. Budget iniziale di sviluppo: due ore. Il core viene implementato separatamente in core/.
+Home zen fullscreen (giardino, sakura, una domanda alla volta). Core HTTP su loopback con SQLite. Budget iniziale superato: prodotto v2 completo in demo; AI e runner reale dipendono da configurazione.
 
 ## Capabilities and Constraints
-Tre decisioni per lo scenario sale riunioni; quattro task con dipendenze. Mock dichiarato disponibile senza backend. Collegamento HTTP al core tramite il contratto in docs/superpowers/specs/2026-09-25-specops-core-design.md. Nessuna esecuzione, cancellazione o verifica automatica di codice.
+Libreria spec + import Markdown. Mode `demo` offline (DemoAdapter). Mode `connected` con provider AI opzionale. HttpRunnerAdapter + reference runner. Legacy `/api/analyze` + `/api/resolve` invariati. Nessuna auth multiutente, nessun deploy cloud in questa consegna.
 
 ## Brand Commitments
-Il prodotto deve sembrare più un gioco che un'app di lavoro. Il concept approvato è una sala di comando con carte decisionali e conseguenze visibili. SpecOps è il nome provvisorio.
+Esperienza da giardino, non da dashboard. SpecOps è il nome del prodotto.
 
 ## Stack
-Scelta implementativa dell'agente per la demo: React, TypeScript e Vite; scena procedurale Three.js e animazioni Motion. Nessun requisito di deploy indicato dall'utente.
+Vite + HTML/CSS/JS (home zen). Core TypeScript Node 22 (`node:sqlite`). Proxy Vite `/api` → core `:3001`.
 
 ## Evidence on Hand
-Spec del core e scenario dimostrativo sale riunioni. Nessun dato di produzione né claim di prestazioni.
+Spec completa `docs/superpowers/specs/2026-09-25-specops-full-product-grok.md`. Test core 39 + root. Smoke mission flow verificato via script.
 
 ## Product Principles
-Le risposte esprimono scelte, non risposte giuste o sbagliate. Distinguere sempre decisioni risolte da task implementati. Le modifiche sono reversibili. Il mock non simula analisi arbitrarie.
+Scelte di prodotto, non quiz giusto/sbagliato. Stato esecuzione distinto da “da rivalutare”. Pausa solo dopo ack del runner. Demo non finge analisi AI live.
