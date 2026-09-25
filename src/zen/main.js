@@ -385,6 +385,7 @@ import { createWallpaper } from './wallpaper.js';
         notice(err.message);
       } finally {
         busy = false;
+        render(false);
       }
       return;
     }
@@ -398,6 +399,7 @@ import { createWallpaper } from './wallpaper.js';
         notice(err.message);
       } finally {
         busy = false;
+        render(false);
       }
       return;
     }
@@ -433,6 +435,7 @@ import { createWallpaper } from './wallpaper.js';
         if (err.code === 'STALE_SPEC') await refreshSnapshot();
       } finally {
         busy = false;
+        render(false);
       }
       return;
     }
@@ -462,6 +465,7 @@ import { createWallpaper } from './wallpaper.js';
         await refreshSnapshot();
       } finally {
         busy = false;
+        render(false);
       }
       return;
     }
@@ -498,6 +502,7 @@ import { createWallpaper } from './wallpaper.js';
         notice(err.message);
       } finally {
         busy = false;
+        render(false);
       }
       return;
     }
@@ -533,6 +538,7 @@ import { createWallpaper } from './wallpaper.js';
       if (err.code === 'STALE_SPEC') await refreshSnapshot();
     } finally {
       busy = false;
+      render(false);
     }
   }
 

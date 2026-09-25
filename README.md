@@ -7,7 +7,8 @@ Giardino zen per accompagnare l’esecuzione di una spec: selezione, analisi, co
 Terminal 1 — core:
 
 ```sh
-cd core && npm install && npm run dev
+npm install --prefix core
+npm run dev:core
 ```
 
 Terminal 2 — UI:

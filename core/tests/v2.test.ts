@@ -216,6 +216,28 @@ describe("v2 HTTP mission flow", () => {
     });
   }
 
+  it("analyzes repeated missions without task or question ID collisions", async () => {
+    const ids: string[] = [];
+    for (const specId of ["rooms-v1", "rooms-v1", "checkout-v1"]) {
+      const response = await fetch(`${base}/api/v2/missions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ specId, specVersion: 1, mode: "demo" }),
+      });
+      expect(response.status).toBe(201);
+      const created = await response.json();
+      ids.push(created.mission.id);
+      await waitAnalysis(created.mission.id);
+    }
+    for (const id of ids) {
+      const snapshot = await (await fetch(`${base}/api/v2/missions/${id}`)).json();
+      expect(snapshot.mission.analysisPhase).toBe("ready");
+      expect(snapshot.tasks.length).toBeGreaterThan(0);
+      expect(snapshot.tasks.every((task: MissionTask) => task.missionId === id)).toBe(true);
+      expect(snapshot.visibleQuestion || snapshot.queuedQuestions.length).toBeTruthy();
+    }
+  });
+
   it("lists specs and runs demo mission to answer+conflict+pause", async () => {
     const specs = await (await fetch(`${base}/api/v2/specs`)).json();
     expect(specs.specs.length).toBeGreaterThan(0);
