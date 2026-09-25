@@ -1,0 +1,17 @@
+
+> specops-core@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /home/marco/code/hackpd/core
+
+ ✓ tests/fixture.test.ts (3 tests) 3ms
+ ✓ tests/analyze.test.ts (5 tests) 3ms
+ ✓ tests/resolve.test.ts (9 tests) 5ms
+ ✓ tests/http.test.ts (7 tests) 3048ms
+
+ Test Files  4 passed (4)
+      Tests  24 passed (24)
+   Start at  20:43:18
+   Duration  3.26s (transform 139ms, setup 0ms, collect 228ms, tests 3.06s, environment 0ms, prepare 180ms)
+
